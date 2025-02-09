@@ -1,3 +1,7 @@
+/*
+  JC's notes : 
+  - typeorm 是用以 1. 建立資料表和對應的欄位 2. 建立模擬的資料庫資料 3. 新增刪除修正查詢資料(不會用以備份資料庫資料)
+*/
 const { DataSource, EntitySchema } = require("typeorm")
 
 const CreditPackage = new EntitySchema({
@@ -8,9 +12,56 @@ const CreditPackage = new EntitySchema({
       primary: true,
       type: "uuid",
       generated: "uuid",
-      nullable: false,
+      nullable: false
     },
-  },
+    name: {
+      type: "varchar",
+      length: 50,
+      nullable: false,
+      unique: true
+    },
+    credit_amount: {
+      type: "integer",
+      nullable: false
+    },
+    price: {
+      type: "numeric",
+      precision: 10,
+      scale: 2,
+      nullable: false
+    },
+    createdAt: {
+      type: "timestamp",
+      createDate: true,
+      name: "created_at",
+      nullable: false
+    }
+  }
+})
+
+const Skill = new EntitySchema({
+  name: "Skill",
+  tableName: "SKILL",
+  columns: {
+    id: {
+      primary: true,
+      type: "uuid",
+      generated: "uuid",
+      nullable: false
+    },
+    name: {
+      type: "varchar",
+      length: 50,
+      nullable: false,
+      unique: true
+    },
+    createdAt: {
+      type: "timestamp",
+      createDate: true,
+      name: "created_at",
+      nullable: false
+    }
+  }
 })
 
 const AppDataSource = new DataSource({
@@ -20,8 +71,15 @@ const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || "root",
   password: process.env.DB_PASSWORD || "test",
   database: process.env.DB_DATABASE || "test",
-  entities: [CreditPackage],
-  synchronize: true,
+  entities: [CreditPackage, Skill],
+  synchronize: true
 })
+
+
+// 透過 entities 陣列將所有 EntitySchema 加入。
+
+// 啟動時 TypeORM 會根據這些設定自動建立或更新表結構（若 synchronize: true）。
+
+// 之後就能使用 AppDataSource.getRepository("CreditPackage") 或 AppDataSource.getRepository("Skill") 進行 CRUD。
 
 module.exports = AppDataSource

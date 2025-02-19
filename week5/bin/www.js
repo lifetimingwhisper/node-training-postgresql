@@ -44,6 +44,7 @@ server.listen(port, async () => {
     await dataSource.initialize()
     logger.info('資料庫連線成功')
     logger.info(`伺服器運作中. port: ${port}`)
+    process
   } catch (error) {
     logger.error(`資料庫連線失敗: ${error.message}`)
     process.exit(1)

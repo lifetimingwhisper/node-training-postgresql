@@ -28,11 +28,15 @@ class ConfigManager {
     }
     const keys = path.split('.')
     let configValue = config
+    console.log('=== config : ', config)
+    console.log('=== configValue : ', configValue)
     keys.forEach((key) => {
       if (!Object.prototype.hasOwnProperty.call(configValue, key)) {
         throw new Error(`config ${path} not found`)
       }
       configValue = configValue[key]
+      console.log('key : ', key)
+      console.log('configValue : ', configValue)
     })
     return configValue
   }

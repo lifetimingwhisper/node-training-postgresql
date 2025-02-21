@@ -8,6 +8,7 @@ const creditPackageRouter = require('./routes/creditPackage')
 const skillRouter = require('./routes/skill')
 const userRouter = require('./routes/user')
 const adminRouter = require('./routes/admin')
+const coachRouter = require('./routes/coach')
 
 const app = express()
 app.use(cors())
@@ -32,6 +33,15 @@ app.use('/api/credit-package', creditPackageRouter)
 app.use('/api/coaches/skill', skillRouter)
 app.use('/api/users', userRouter)
 app.use('/api/admin', adminRouter)
+app.use('/api/coach', coachRouter)
+
+// 404
+app.use((req, res, next) => {
+  res.status(404).json({
+    status: 'error',
+    message: '找不到頁面'
+  })
+})
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

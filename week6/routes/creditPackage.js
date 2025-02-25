@@ -43,25 +43,25 @@ router.post('/', async (req, res, next) => {
       })
       return
     }
-    const creditPurchaseRepo = await dataSource.getRepository('CreditPackage')
-    const existCreditPurchase = await creditPurchaseRepo.find({
+    const creditPackageRepo = await dataSource.getRepository('CreditPackage')
+    const existCreditPackage = await creditPackageRepo.find({
       where: {
         name
       }
     })
-    if (existCreditPurchase.length > 0) {
+    if (existCreditPackage.length > 0) {
       res.status(409).json({
         status: 'failed',
         message: '資料重複'
       })
       return
     }
-    const newCreditPurchase = await creditPurchaseRepo.create({
+    const newCreditPackage = await creditPackageRepo.create({
       name,
       credit_amount: creditAmount,
       price
     })
-    const result = await creditPurchaseRepo.save(newCreditPurchase)
+    const result = await creditPackageRepo.save(newCreditPackage)
     res.status(200).json({
       status: 'success',
       data: result

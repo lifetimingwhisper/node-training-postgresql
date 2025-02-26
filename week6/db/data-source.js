@@ -5,7 +5,8 @@ const CreditPackage = require('../entities/CreditPackages')
 const Skill = require('../entities/Skill')
 const Coach = require('../entities/Coach')
 const Course = require('../entities/Course')
-const User = require('../entities/User') 
+const User = require('../entities/User')
+const CreditPurchase = require('../entities/CreditPurchase') 
 
 const dataSource = new DataSource({
   type: 'postgres',
@@ -21,7 +22,8 @@ const dataSource = new DataSource({
     Skill,
     Coach,
     Course,
-    User
+    User,
+    CreditPurchase
   ],
   migrations: [
     '../migration/1740553595316-week6.ts'

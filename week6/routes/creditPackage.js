@@ -3,18 +3,15 @@ const express = require('express')
 const router = express.Router()
 const { dataSource } = require('../db/data-source')
 const logger = require('../utils/logger')('CreditPackage')
+const validation = require('../utils/validation')
 
-function isUndefined (value) {
-  return value === undefined
-}
-
-function isNotValidSting (value) {
-  return typeof value !== 'string' || value.trim().length === 0 || value === ''
-}
-
-function isNotValidInteger (value) {
-  return typeof value !== 'number' || value < 0 || value % 1 !== 0
-}
+const config = require('../config/index')
+const CreditPurchase = require('../entities/CreditPurchase')
+const auth = require('../middlewares/auth')({
+  secret: config.get('secret').jwtSecret,
+  userRepository: dataSource.getRepository('User'),
+  logger
+})
 
 // 取得購買方案列表
 router.get('', async (req, res, next) => {
@@ -36,9 +33,9 @@ router.get('', async (req, res, next) => {
 router.post('', async (req, res, next) => {
   try {
     const { name, credit_amount: creditAmount, price } = req.body
-    if (isUndefined(name) || isNotValidSting(name) ||
-      isUndefined(creditAmount) || isNotValidInteger(creditAmount) ||
-            isUndefined(price) || isNotValidInteger(price)) {
+    if (validation.isUndefined(name) || validation.isNotValidSting(name) || 
+    validation.isUndefined(creditAmount) || validation.isNotValidInteger(creditAmount) ||
+    validation.isUndefined(price) || validation.isNotValidInteger(price)) {
       res.status(400).json({
         status: 'failed',
         message: '欄位未填寫正確'
@@ -78,7 +75,7 @@ router.post('', async (req, res, next) => {
 router.delete('/:creditPackageId', async (req, res, next) => {
   try {
     const { creditPackageId } = req.params
-    if (isUndefined(creditPackageId) || isNotValidSting(creditPackageId)) {
+    if (validation.isUndefined(creditPackageId) || validation.isNotValidSting(creditPackageId)) {
       res.status(400).json({
         status: 'failed',
         message: '欄位未填寫正確'
@@ -97,6 +94,56 @@ router.delete('/:creditPackageId', async (req, res, next) => {
       status: 'success',
       data: result
     })
+  } catch (error) {
+    logger.error(error)
+    next(error)
+  }
+})
+
+// 使用者購買方案
+router.post('/:creditPackageId', auth, async (req, res, next) => {
+  try {
+    const { creditPackageId } = req.params
+    if (validation.isUndefined(creditPackageId) || validation.isNotValidSting(creditPackageId)) {
+      res.status(400).json({
+        status: 'failed',
+        message: 'ID錯誤'
+      })
+      return
+    }
+
+    const creditPackageRepo = dataSource.getRepository('CreditPackage')
+    const existCreditPackage = await creditPackageRepo.findOne({
+      where: { id : creditPackageId }
+    })
+
+    if (!existCreditPackage) {
+      res.status(400).json({
+        status: 'failed',
+        message: '購買方案不存在'
+      })
+      return 
+    }
+
+    const creditPurchaseRepo = dataSource.getRepository('CreditPurchase')
+    const newCreditPurchase = creditPurchaseRepo.create({
+      user_id: req.user.id,
+      credit_package_id: creditPackageId,
+      purchased_credits: existCreditPackage.credit_amount,
+      price_paid: existCreditPackage.price,
+      purchaseAt: new Date().toISOString()
+      /*
+        JC's note : 
+        new Date().toISOString() 產生 ISO 8601 string，但因為在 database schema 是 type timestamp，所以 TypeORM will convert the string back to a Date object before saving it (那為什麼不存入 Date object 即可呢？ 測試 'purchaseAt : new Date()' 可以正確新增一筆資料)
+      */
+    })
+
+    await creditPurchaseRepo.save(newCreditPurchase)
+    res.status(201).json({
+      status: 'success',
+      data: null
+    })
+
   } catch (error) {
     logger.error(error)
     next(error)

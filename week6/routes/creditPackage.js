@@ -16,7 +16,8 @@ function isNotValidInteger (value) {
   return typeof value !== 'number' || value < 0 || value % 1 !== 0
 }
 
-router.get('/', async (req, res, next) => {
+// 取得購買方案列表
+router.get('', async (req, res, next) => {
   try {
     const creditPackage = await dataSource.getRepository('CreditPackage').find({
       select: ['id', 'name', 'credit_amount', 'price']
@@ -31,7 +32,8 @@ router.get('/', async (req, res, next) => {
   }
 })
 
-router.post('/', async (req, res, next) => {
+// 新增購買方案
+router.post('', async (req, res, next) => {
   try {
     const { name, credit_amount: creditAmount, price } = req.body
     if (isUndefined(name) || isNotValidSting(name) ||
@@ -72,6 +74,7 @@ router.post('/', async (req, res, next) => {
   }
 })
 
+// 刪除購買方案
 router.delete('/:creditPackageId', async (req, res, next) => {
   try {
     const { creditPackageId } = req.params

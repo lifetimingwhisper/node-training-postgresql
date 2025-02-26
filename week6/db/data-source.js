@@ -23,6 +23,9 @@ const dataSource = new DataSource({
     Course,
     User
   ],
+  migrations: [
+    '../migration/1740553595316-week6.ts'
+  ],
   ssl: config.get('db.ssl')
 })
 

@@ -23,7 +23,7 @@ module.exports = new EntitySchema({
       type: 'uuid',
       nullable: false,
       foreignKey: {
-        name: 'course_skill_id_fkey',
+        name: 'course_skill_id_fkey',  // Constraint name in column definition
         columnNames: ['skill_id'],
         referencedTableName: 'SKILL',
         referencedColumnNames: ['id']
@@ -64,6 +64,28 @@ module.exports = new EntitySchema({
       type: 'timestamp',
       updateDate: true,
       nullable: false
+    }
+  },
+  relations: {
+    Skill: {
+      target: 'Skill',
+      type: 'many-to-one',
+      inverseSide: 'Skill',
+      joinColumn: {
+        name: 'skill_id',
+        referencedColumnName: 'id',
+        foreignKeyConstraintName: 'course_skill_id_fkey'
+      }
+    },
+    User: {
+      target: 'User',                 // 1. Related entity (User table)
+      type: 'many-to-one',            // 2. Relationship type (Many courses belong to one user)
+      inverseSide: 'Course',          // 3. The opposite side of the relation (User -> Courses)
+      joinColumn: {                   // 4. Configuring the foreign key column
+        name: 'user_id',              // 4.1. Column name in the Course table
+        referencedColumnName: 'id',   // 4.2. Reference column in the User table (usually reference to the primary key)
+        foreignKeyConstraintName: 'course_user_id_fkey' // 4.3. Custom foreign key name (should be the same as what is defined above?) 
+      }
     }
   }
 })

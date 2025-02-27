@@ -16,10 +16,7 @@ module.exports = new EntitySchema ({
         },
         credit_package_id: {
             type: 'uuid',
-            nullable: false,
-            relations: {
-
-            }
+            nullable: false
         },
         purchased_credits: {
             type: 'integer',

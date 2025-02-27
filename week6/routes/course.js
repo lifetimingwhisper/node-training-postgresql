@@ -43,7 +43,7 @@ router.get('', async (req, res, next) => {
     }
 })
 
-// 報名課程 (教練開辦的課程)
+// 報名課程
 router.post('/:courseId', auth, async (req, res, next) => {
     const { courseId } = req.params
     const userId = req.user.id
@@ -138,4 +138,69 @@ router.post('/:courseId', auth, async (req, res, next) => {
     })
 })
 
+// 取消課程
+router.delete('/:courseId', auth, async (req, res, next) => {
+    const { courseId } = req.params
+    const userId = req.user.id
+    
+    if (validation.isUndefined(courseId) || validation.isNotValidSting(courseId)) {
+        res.status(400).json({
+            status: 'failed',
+            message: '欄位未填寫正確'
+        })
+        return
+    }
+
+    const courseRepo = dataSource.getRepository('Course')
+    const course = await courseRepo.findOne({
+        where: { 
+            id : courseId 
+        }
+    })
+
+    if (!course) {
+        res.status(400).json({
+            status: 'failed',
+            message: '課程不存在'
+        })
+        return
+    }
+
+    const courseBookingRepo = dataSource.getRepository('CourseBooking')
+    const booking = await courseBookingRepo.findOne({
+        where: {
+            user_id: userId, 
+            course_id : courseId,
+        }
+    })
+    
+    if (booking.cancelledAt != null) {
+        res.status(400).json({
+            status: 'failed',
+            message: '已經取消過此課程'
+        })
+        return;
+    }
+
+    const updatedCourseBooking = await courseBookingRepo.update(
+        { id: booking.id }, 
+        { cancelledAt: new Date() })
+
+
+    if (updatedCourseBooking.affected === 0) {
+        logger.warn('更新課程失敗')
+        res.status(400).json({
+            status: 'failed',
+            message: '更新課程失敗'
+        })
+        return
+    }  
+
+    res.status(200).json({
+        status: 'success',
+        data: null
+    })    
+    
+    
+})
 module.exports = router

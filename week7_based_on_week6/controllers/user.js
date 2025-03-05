@@ -9,6 +9,8 @@ const generateJWT = require('../utils/generateJWT')
 
 const saltRounds = 10
 
+const { IsNull } = require('typeorm') // check if a column has NULL values in queries
+
 async function postSignup(req, res, next) {
     try {
         const passwordPattern = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,16}/
@@ -244,10 +246,52 @@ async function getBoughtCreditPackages(req, res, next) {
     }
 }
 
+async function getBookedCourses(req, res, next) {
+    try {
+        const { id } = req.user 
+        const courseBookingRepo = dataSource.getRepository('CourseBooking')
+        const creditPurchaseRepo = dataSource.getRepository('CreditPurchase')
+        const [courseBookings, purchasedCredits] = await Promise.all([
+            courseBookingRepo.find({
+                relations: [ 'Course', 'Course.User' ],
+                where: {
+                    user_id: id,
+                    cancelledAt: IsNull()
+                }
+            }),
+            creditPurchaseRepo.sum('purchased_credits', { user_id: id })
+        ]);
+
+        const bookedCourses = courseBookings.map( booking => {
+            return {
+                name: booking.Course.name,
+                course_id: booking.course_id,
+                coach_name: booking.Course.User.name,
+                start_at: booking.Course.start_at,
+                end_at: booking.Course.end_at,
+                meeting_url: booking.Course.meeting_url
+            }
+        })
+
+        res.status(200).json({
+            "status" : "success",
+            "data": {
+                "credit_remain": purchasedCredits - bookedCourses.length,
+                "credit_usage": bookedCourses.length,
+                course_booking: bookedCourses
+            }
+        })
+    } catch(error) {
+        logger.error(error)
+        next(error)
+    }
+}
+
 module.exports = {
     postSignup,
     postLogin,
     getProfile,
     putProfile,
-    getBoughtCreditPackages
+    getBoughtCreditPackages,
+    getBookedCourses
 }

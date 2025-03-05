@@ -25,4 +25,6 @@ router.put('/profile', auth, user.putProfile)
 // 取得使用者已購買的方案列表
 router.get('/credit-package', auth, user.getBoughtCreditPackages)
 
+// 取得已預約的課程列表
+router.get('/courses', auth, user.getBookedCourses)
 module.exports = router

@@ -163,7 +163,6 @@ async function getProfile(req, res, next) {
 
 async function putProfile(req, res, next) {
     try {
-        console.log("req.user...................: ", req.user)
         const { id } = req.user
         const { name } = req.body
         if (validation.isUndefined(name) || validation.isNotValidSting(name)) {
@@ -215,9 +214,40 @@ async function putProfile(req, res, next) {
     }
 }
 
+async function getBoughtCreditPackages(req, res, next) {
+    try {
+        const { id } = req.user
+        const creditPurchaseRepo = dataSource.getRepository('CreditPurchase')
+        let creditPurchases = await creditPurchaseRepo.find({
+            relations: [ 'CreditPackage' ],
+            where: {
+                user_id: id
+            }
+        })
+
+        creditPurchases = creditPurchases.map( purchase => {
+            return {
+                purchased_credits: purchase.purchased_credits,
+                price_paid: purchase.price_paid,
+                name: purchase.CreditPackage.name,
+                purchase_at: purchase.purchase_at
+            }
+        })
+
+        res.status(200).json({
+            "status" : "success",
+            "data": creditPurchases
+        })
+    } catch(error) {
+        logger.error(error)
+        next(error)
+    }
+}
+
 module.exports = {
     postSignup,
     postLogin,
     getProfile,
-    putProfile
+    putProfile,
+    getBoughtCreditPackages
 }

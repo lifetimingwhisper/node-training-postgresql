@@ -22,4 +22,7 @@ router.get('/profile', auth, user.getProfile)
 // 更新個人資料
 router.put('/profile', auth, user.putProfile)
 
+// 取得使用者已購買的方案列表
+router.get('/credit-package', auth, user.getBoughtCreditPackages)
+
 module.exports = router

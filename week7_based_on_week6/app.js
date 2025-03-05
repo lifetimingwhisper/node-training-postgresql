@@ -34,7 +34,7 @@ app.use('/api/credit-package', creditPackageRouter)
 app.use('/api/coaches/skill', skillRouter)
 app.use('/api/users', userRouter)
 app.use('/api/admin', adminRouter)
-app.use('/api/coach', coachRouter)
+app.use('/api/coaches', coachRouter)
 app.use('/api/courses', courseRouter)
 
 // 404

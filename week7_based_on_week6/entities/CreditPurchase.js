@@ -50,7 +50,7 @@ module.exports = new EntitySchema ({
               foreignKeyConstraintName: 'credit_purchase_user_id_fkey'
             }
         },
-        CreditPackaage: {
+        CreditPackage: {
             target: 'CreditPackage',
             type: 'many-to-one',
             inverseSide: 'CreditPackage',

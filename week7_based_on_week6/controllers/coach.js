@@ -95,7 +95,66 @@ async function getCoaches(req, res, next) {
     }
 }
 
+async function getTheCoachCourses(req, res, next) {
+    const coachId = req.params.coachId
+    if (validation.isUndefined(coachId) || validation.isNotValidSting(coachId)) {
+        logger.warn('欄位未填寫正確')
+        res.status(400).json({
+            status: 'failed',
+            message: '欄位未填寫正確'
+        })
+        return
+    }
+
+    try {
+        const coachRepo = dataSource.getRepository('Coach')
+        const existingCoach = await coachRepo.findOne({
+            relations: ['User'],
+            where: {id : coachId}
+        })
+
+        if (!existingCoach) {
+            logger.warn('找不到該教練')
+            res.status(400).json({
+                status: 'failed',
+                message: '找不到該教練'
+            })
+            return
+        }
+
+        const courseRepo = dataSource.getRepository('Course')
+        let courses = await courseRepo.find({
+            relations: ['Skill'],
+            where: {
+                user_id: existingCoach.User.id
+            }
+        })
+
+        courses = await courses.map(course => {
+            return {
+                id: course.id,
+                coach_name: existingCoach.User.name,
+                skill_name: course.Skill.name,
+                name: course.name,
+                description: course.description,
+                start_at: course.start_at,
+                end_at: course.end_at,
+                max_participants: course.max_participants
+            }
+        })
+
+        res.status(200).json({
+            "status" : "success",
+            "data": courses
+        })
+    } catch(error) {
+        logger.error(error)
+        next(error)
+    } 
+}
+
 module.exports = {
     getTheCoachInfo,
-    getCoaches
+    getCoaches,
+    getTheCoachCourses
 }

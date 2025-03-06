@@ -21,4 +21,7 @@ router.put('/coaches/courses/:courseId', auth, isCoach, admin.putCourse)
 // 將使用者新增為教練
 router.post('/coaches/:userId', auth, isCoach, admin.postUserToCoach)
 
+// 取得教練自己的課程列表
+router.get('/coaches/courses', auth, isCoach, admin.getCoachCourses)
+
 module.exports = router

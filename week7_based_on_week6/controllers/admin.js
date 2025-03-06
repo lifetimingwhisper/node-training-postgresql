@@ -221,8 +221,100 @@ async function putCourse(req, res, next) {
     }
 }
 
+async function getCoachCourses(req, res, next) {
+  try {
+    const { id } = req.user
+
+    const courseRepo = dataSource.getRepository('Course')
+    const coursesWithBookedSpotCount = await courseRepo
+      .createQueryBuilder('Course') // (1) Start querying from the 'course' table
+      .leftJoinAndSelect('Course.Skill', 'Skill') // (2) Join the Skill table with relation : 'Course.Skill' refers to the relationship you defined in the Course entity (the Skill relation) and its alias (the table's alias) which can be used in the raw object (so course['Skill_name'] is used to access the skill nam)
+      .leftJoin('CourseBooking', 'CourseBooking', 'CourseBooking.course_id = Course.id')  // Joining CourseBooking table manually; second argument is the argument and the last is the condition
+      .where('Course.user_id = :coachId', { coachId: id }) // (3) Filter by coachId
+      .addSelect((subQuery) => {
+        return subQuery
+          .select('COUNT(CourseBooking.id)', 'bookedSpotCount') // (4) Count bookings per course
+          .from('CourseBooking', 'CourseBooking')
+          .where('CourseBooking.course_id = Course.id'); // (5) Match bookings to the course
+      }, 'bookedSpotCount')
+      // .getMany(); // return entity objects instead of raw objects, so course.Skill.name is used to access the skill name which means the alias can't be used
+      .getRawMany(); // return raw objects, so course['Skill_name'] is used to access the skill name
+
+    let courses = coursesWithBookedSpotCount.map(course => {
+      return {
+        id: course.Course_id,
+        name: course.Course_name,
+        skillname: course.Skill_name,
+        start_at: course.Course_start_at,
+        end_at: course.Course_end_at,
+        max_participants: course.Course_max_participants,
+        participants: parseInt(course.bookedSpotCount, 10), // COUNT() return as a sstring type
+      }
+    })
+
+    res.status(200).json({
+      status: 'success',
+      data: courses
+    })
+  } catch(error) {
+    logger.error(error)
+    next(error)
+  }
+}
+
+/*
+  JC's note:
+  keep it for reference 
+async function getCoachCourses(req, res, next) {
+  try {
+    const { id } = req.user
+
+    const courseRepo = dataSource.getRepository('Course')
+    const coursesWithBookedSpotCount = await courseRepo
+      .createQueryBuilder('Course') // (1) Start querying from the 'course' table
+      .innerJoinAndSelect('Course.Skill', 'Skill') // (2) Join the Skill table with relation : 'Course.Skill' refers to the relationship you defined in the Course entity (the Skill relation) and its alias (the table's alias) which can be used in the raw object (so course['Skill_name'] is used to access the skill nam)
+      // .leftJoin('Skill', 'Skill', 'Skill.id = Course.skill_id') // .addSelect(['Skill.name AS skillName'])
+      .innerJoin('CourseBooking', 'CourseBooking', 'CourseBooking.course_id = Course.id')  // Joining CourseBooking table manually; second argument is the argument and the last is the condition
+      .where('Course.user_id = :coachId', { coachId: id }) // (3) Filter by coachId
+      .addSelect((subQuery) => {
+        return subQuery
+          .select('COUNT(CourseBooking.id)', 'bookedSpotCount') // (4) Count bookings per course
+          .from('CourseBooking', 'CourseBooking')
+          .where('CourseBooking.course_id = Course.id'); // (5) Match bookings to the course
+      }, 'bookedSpotCount')
+      // .addSelect('Course.max_participants - COALESCE(bookedSpotCount, 0)', 'remainingSpots') // (6) Compute remaining spots
+      .getMany(); // return entity objects instead of raw objects, so course.Skill.name is used to access the skill name which means the alias can't be used
+      // .getRawMany(); // return raw objects, so course['Skill_name'] is used to access the skill name
+
+      console.log("==========================================================")
+      console.log('========= coursesWithBookedSpotCount: ', coursesWithBookedSpotCount)
+      console.log("==========================================================")
+    let courses = coursesWithBookedSpotCount.map(course => {
+      return {
+        id: course.id,
+        name: course.name,
+        skillname: course.skillName,
+        start_at: course.start_at,
+        end_at: course.end_at,
+        max_participants: course.max_participants,
+        participants: course.bookedSpotCount,
+      }
+    })
+
+    res.status(200).json({
+      status: 'success',
+      data: courses
+    })
+  } catch(error) {
+    logger.error(error)
+    next(error)
+  }
+}
+  */
+
 module.exports = {
     postUserToCoach,
     postNewCourse,
-    putCourse
+    putCourse,
+    getCoachCourses
 }

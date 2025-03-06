@@ -262,6 +262,41 @@ async function getCoachCourses(req, res, next) {
   }
 }
 
+async function getTheCoachCourse(req, res, next) {
+  try {
+    const { courseId } = req.params
+    const { id } = req.user
+
+    const courseRepo = dataSource.getRepository('Course')
+    let courses = await courseRepo
+      .createQueryBuilder('Course')
+      .innerJoinAndSelect('Course.Skill', 'Skill') 
+      .where('Course.user_id = :coachId', { coachId: id })
+      .andWhere('Course.id = :courseId', { courseId })
+      .getMany()
+
+    courses = courses.map(course => {
+      return {
+        id: course.id,
+        name: course.name,
+        skill_name: course.Skill.name,
+        description: course.description,
+        start_at: course.start_at,
+        end_at: course.end_at,
+        max_participants: course.max_participants,
+      }
+    })
+
+    res.status(200).json({
+      status: 'success',
+      data: courses
+    })
+  } catch(error) {
+    logger.error(error)
+    next(error)
+  }
+}
+
 /*
   JC's note:
   keep it for reference 
@@ -316,5 +351,6 @@ module.exports = {
     postUserToCoach,
     postNewCourse,
     putCourse,
-    getCoachCourses
+    getCoachCourses,
+    getTheCoachCourse
 }

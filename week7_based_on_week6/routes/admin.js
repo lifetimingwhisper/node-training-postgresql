@@ -24,4 +24,7 @@ router.post('/coaches/:userId', auth, isCoach, admin.postUserToCoach)
 // 取得教練自己的課程列表
 router.get('/coaches/courses', auth, isCoach, admin.getCoachCourses)
 
+// 取得教練自己的課程詳細資料
+router.get('/coaches/courses/:courseId', auth, isCoach, admin.getTheCoachCourse)
+
 module.exports = router

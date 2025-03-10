@@ -27,4 +27,7 @@ router.get('/credit-package', auth, user.getBoughtCreditPackages)
 
 // 取得已預約的課程列表
 router.get('/courses', auth, user.getBookedCourses)
+
+// 使用者更新密碼
+router.put('/password', auth, user.putPassword)
 module.exports = router

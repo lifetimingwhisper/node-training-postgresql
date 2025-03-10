@@ -287,11 +287,87 @@ async function getBookedCourses(req, res, next) {
     }
 }
 
+async function putPassword(req, res, next) {
+    try {
+        const { id } = req.user
+        const { password: oldPassword, new_password: newPassword, confirm_new_password: confirmNewPassword } = req.body
+
+        // 驗證必填欄位
+        if (validation.isUndefined(newPassword) || validation.isNotValidSting(newPassword) || validation.isUndefined(confirmNewPassword) || validation.isNotValidSting(confirmNewPassword) || validation.isUndefined(oldPassword) || validation.isNotValidSting(oldPassword)) {
+            logger.warn('欄位未填寫正確')
+            res.status(400).json({
+                status: 'failed',
+                message: '欄位未填寫正確'
+            })
+            return
+        }
+
+        const userRepository = dataSource.getRepository('User')
+        const user = await userRepository.findOne({
+            select: ['password'], 
+            where: { id }
+        })
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password)
+        if (!isMatch) {
+            res.status(400).json({
+            status: 'failed',
+            message: '密碼輸入錯誤'
+            })
+            return
+        }
+
+        const passwordPattern = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,16}/
+        if (newPassword !== confirmNewPassword) {
+            logger.warn('新密碼和確認密碼不一致')
+            res.status(400).json({
+                status: 'failed',
+                message: '新密碼和確認密碼不一致'
+             })
+            return
+        }
+
+        if (!passwordPattern.test(newPassword)) {
+            logger.warn('建立使用者錯誤: 密碼不符合規則，需要包含英文數字大小寫，最短8個字，最長16個字')
+            res.status(400).json({
+                status: 'failed',
+                message: '密碼不符合規則，需要包含英文數字大小寫，最短8個字，最長16個字'
+             })
+            return
+        }
+
+        const hashPassword = await bcrypt.hash(newPassword, saltRounds)
+        const updatedResult = await userRepository.update({
+            id
+        }, {
+            password: hashPassword
+        })
+
+        if (updatedResult.affected === 0) {
+            res.status(400).json({
+              status: 'failed',
+              message: '更新密碼失敗'
+            })
+            return
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: null
+        })
+    }
+    catch(error) {
+        logger.error(error)
+        next(error)
+    }
+}
+
 module.exports = {
     postSignup,
     postLogin,
     getProfile,
     putProfile,
     getBoughtCreditPackages,
-    getBookedCourses
+    getBookedCourses,
+    putPassword
 }

@@ -27,4 +27,11 @@ router.get('/coaches/courses', auth, isCoach, admin.getCoachCourses)
 // 取得教練自己的課程詳細資料
 router.get('/coaches/courses/:courseId', auth, isCoach, admin.getTheCoachCourse)
 
+// 變更教練資料
+router.put('/coaches', auth, isCoach, admin.putCoachProfile)
+
+// 取得教練自己的詳細資料
+router.get('/coaches', auth, isCoach, admin.getCoachProfile)
+
+
 module.exports = router

@@ -296,6 +296,151 @@ async function getTheCoachCourse(req, res, next) {
   }
 }
 
+async function putCoachProfile(req, res, next) {
+  try {
+    const { id: user_id } = req.user
+    const { experience_years: experienceYears, description, profile_image_url: profileImageUrl = null, skill_ids: skillIds = [] } = req.body
+    if (validation.isUndefined(experienceYears) || validation.isNotValidInteger(experienceYears) || validation.isUndefined(description) || validation.isNotValidSting(description)) {
+      logger.warn('欄位未填寫正確')
+        res.status(400).json({
+          status: 'failed',
+          message: '欄位未填寫正確'
+        })
+        return
+      }
+
+    if (profileImageUrl && !validation.isNotValidSting(profileImageUrl) && !profileImageUrl.startsWith('https')) {
+      logger.warn('大頭貼網址錯誤')
+      res.status(400).json({
+        status: 'failed',
+        message: '欄位未填寫正確'
+      })
+      return
+    }
+
+    if (!Array.isArray(skillIds) || skillIds.length <= 0 || skillIds.every(skill => {validation.isUndefined(skill) || validation.isNotValidSting(skill)})) {
+      logger.warn('欄位未填寫正確')
+      res.status(400).json({
+        status: 'failed',
+        message: '欄位未填寫正確'
+      })
+      return
+    }
+
+    const coachRepo = dataSource.getRepository('Coach')
+    const coach = await coachRepo.findOne({
+      where: { user_id: user_id }
+    })
+
+    if (!coach) {
+      logger.warn('教練不存在')
+      res.status(400).json({
+        status: 'failed',
+        message: '教練不存在'
+      })
+      return
+    }
+
+    // JC's Q: 如何確保資料庫多筆操作都正確完成？是否可能造成資料庫不一致的情況？
+    let result = await coachRepo.update({
+      user_id: user_id
+    }, {
+      experience_years: experienceYears,
+      description: description,
+      profile_image_url: profileImageUrl
+    })
+
+    const coachLinkSkillRepo = dataSource.getRepository('CoachLinkSkill')
+    const newCoachLinkSkills = skillIds.map(skill => ({
+      coach_id: coach.id,
+      skill_id: skill
+    }))
+    await coachLinkSkillRepo.delete({ coach_id: coach.id })
+    result = await coachLinkSkillRepo.insert(newCoachLinkSkills)
+
+    const profile = await coachRepo
+      .createQueryBuilder("Coach")
+      .leftJoinAndSelect("Coach.CoachLinkSkill", "CoachLinkSkill")
+      .leftJoinAndSelect("CoachLinkSkill.Skill", "Skill")
+      .where("Coach.id = :coachId", { coachId: coach.id })
+      .getOne();
+
+    const skills = profile.CoachLinkSkill.map( element => {
+      return {
+        skill_id: element.skill_id,
+        skill_name: element.Skill.name
+      }
+    })   
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        id: profile.id,
+        user_id: profile.user_id,
+        experience_years: profile.experience_years,
+        description: profile.description,
+        profile_image_url: profile.profile_image_url,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at,
+        skills: skills
+      }
+    })
+    return 
+
+  } catch(error) {
+    logger.error(error)
+    next(error)
+  }
+}
+
+async function getCoachProfile(req, res, next) {
+  try {
+    const { id: user_id } = req.user
+
+    const coachRepo = dataSource.getRepository('Coach')
+    const coach = await coachRepo.findOne({
+      where: { user_id: user_id }
+    })
+
+    if (!coach) {
+      logger.warn('教練不存在')
+      res.status(400).json({
+        status: 'failed',
+        message: '教練不存在'
+      })
+      return
+    }
+    
+    const profile = await coachRepo
+      .createQueryBuilder('Coach')
+      .leftJoinAndSelect('Coach.CoachLinkSkill', 'CoachLinkSkill')
+      .leftJoinAndSelect('CoachLinkSkill.Skill', 'Skill')
+      .where("Coach.id = :coachId", { coachId: coach.id })
+      .getOne()
+
+    const skills = profile.CoachLinkSkill.map( element => {
+      return {
+        skill_id: element.skill_id,
+        skill_name: element.Skill.name
+      }
+    })   
+
+    res.status(200).json({
+      "status" : "success",
+      "data": {
+          "id": profile.id,
+          "experience_years": profile.experience_years,
+          "description": profile.description,
+          "profile_image_url": profile.profile_image_url,
+          "skills": skills 
+      }
+    })
+    return 
+  } catch(error) {
+    logger.error(error)
+    next(error)
+  }
+}
 /*
   JC's note:
   keep it for reference 
@@ -351,5 +496,7 @@ module.exports = {
     postNewCourse,
     putCourse,
     getCoachCourses,
-    getTheCoachCourse
+    getTheCoachCourse,
+    putCoachProfile,
+    getCoachProfile
 }

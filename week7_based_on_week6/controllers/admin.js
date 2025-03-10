@@ -229,7 +229,6 @@ async function getCoachCourses(req, res, next) {
     const coursesWithBookedSpotCount = await courseRepo
       .createQueryBuilder('Course') // (1) Start querying from the 'course' table
       .leftJoinAndSelect('Course.Skill', 'Skill') // (2) Join the Skill table with relation : 'Course.Skill' refers to the relationship you defined in the Course entity (the Skill relation) and its alias (the table's alias) which can be used in the raw object (so course['Skill_name'] is used to access the skill nam)
-      .leftJoin('CourseBooking', 'CourseBooking', 'CourseBooking.course_id = Course.id')  // Joining CourseBooking table manually; second argument is the argument and the last is the condition
       .where('Course.user_id = :coachId', { coachId: id }) // (3) Filter by coachId
       .addSelect((subQuery) => {
         return subQuery
@@ -345,7 +344,7 @@ async function getCoachCourses(req, res, next) {
     next(error)
   }
 }
-  */
+*/
 
 module.exports = {
     postUserToCoach,

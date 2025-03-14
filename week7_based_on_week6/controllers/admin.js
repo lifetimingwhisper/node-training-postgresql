@@ -3,6 +3,26 @@ const { dataSource } = require('../db/data-source')
 const logger = require('../utils/logger')('Admin')
 const validation = require('../utils/validation')
 
+const dayjs = require('dayjs')
+const utc = require('dayjs/plugin/utc')
+
+// The extend method is used to load and enable a plugin. The utc plugin allows Day.js to handle and manipulate UTC time.
+dayjs.extend(utc)
+const monthMap = {
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12
+}
+
 async function postUserToCoach(req, res, next) {
     try {
       const { userId } = req.params
@@ -441,6 +461,81 @@ async function getCoachProfile(req, res, next) {
     next(error)
   }
 }
+
+async function getCoachRevenue (req, res, next) {
+  try {
+    const { id } = req.user
+    const { month } = req.query
+
+    if (validation.isUndefined(month) || !Object.prototype.hasOwnProperty.call(monthMap, month.toLowerCase())) {
+      logger.warn('欄位未填寫正確')
+      res.status(400).json({
+        status: 'failed',
+        message: '欄位未填寫正確'
+      })
+      return
+    }
+
+    const courseRepo = dataSource.getRepository('Course')
+    const courses = await courseRepo.find({
+      select: ['id'],
+      where: { user_id: id }
+    })
+    const courseIds = courses.map(course => course.id)
+    if (courseIds.length === 0) {
+      res.status(200).json({
+        status: 'success',
+        data: {
+          total: {
+            revenue: 0,
+            participants: 0,
+            course_count: 0
+          }
+        }
+      })
+      return
+    }
+
+    const courseBookingRepo = dataSource.getRepository('CourseBooking')
+    const year = new Date().getFullYear()
+    const calculateStartAt = dayjs(`${year}-${month}-01`).startOf('month').toISOString()
+    const calculateEndAt = dayjs(`${year}-${month}-01`).endOf('month').toISOString()
+    const courseCount = await courseBookingRepo.createQueryBuilder('CourseBooking')
+      .select('COUNT(*)', 'count')
+      .where('course_id IN (:...ids)', { ids: courseIds }) // filter database records where course_id matches any value in an array (courseIds
+      .andWhere('cancelled_at IS NULL')
+      .andWhere('created_at >= :startDate', { startDate: calculateStartAt })
+      .andWhere('created_at <= :endDate', { endDate: calculateEndAt })
+      .getRawOne()
+    const participants = await courseBookingRepo.createQueryBuilder('CourseBooking')
+      .select('COUNT(DISTINCT(user_id))', 'count')
+      .where('course_id IN (:...ids)', { ids: courseIds })
+      .andWhere('cancelled_at IS NULL')
+      .andWhere('created_at >= :startDate', { startDate: calculateStartAt })
+      .andWhere('created_at <= :endDate', { endDate: calculateEndAt })
+      .getRawOne()
+    const totalCreditPackage = await dataSource.getRepository('CreditPackage').createQueryBuilder('CreditPackage')
+      .select('SUM(credit_amount)', 'total_credit_amount')
+      .addSelect('SUM(price)', 'total_price')
+      .getRawOne()
+    const perCreditPrice = totalCreditPackage.total_price / totalCreditPackage.total_credit_amount
+    const totalRevenue = courseCount.count * perCreditPrice
+    res.status(200).json({
+      status: 'success',
+      data: {
+        total: {
+          revenue: Math.floor(totalRevenue),
+          participants: parseInt(participants.count, 10),
+          course_count: parseInt(courseCount.count, 10)
+        }
+      }
+    })
+  } catch (error) {
+    logger.error(error)
+    next(error)
+  }
+}
+
 /*
   JC's note:
   keep it for reference 
@@ -498,5 +593,6 @@ module.exports = {
     getCoachCourses,
     getTheCoachCourse,
     putCoachProfile,
-    getCoachProfile
+    getCoachProfile,
+    getCoachRevenue
 }

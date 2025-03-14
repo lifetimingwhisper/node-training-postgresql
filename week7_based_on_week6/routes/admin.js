@@ -33,5 +33,7 @@ router.put('/coaches', auth, isCoach, admin.putCoachProfile)
 // 取得教練自己的詳細資料
 router.get('/coaches', auth, isCoach, admin.getCoachProfile)
 
+// 取得教練自己的月營收資料
+router.get('/coaches/revenue', auth, isCoach, admin.getCoachRevenue)
 
 module.exports = router
